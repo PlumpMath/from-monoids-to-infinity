@@ -44,5 +44,5 @@ flatMap f as = concat' $ fmap f as
 
 main :: IO ()
 main = do
-    quickBatch $ monoid (Cons (1::Int) Nil)
+    quickBatch $ monoid $ (undefined :: MyList Int)
     quickBatch $ applicative $ (undefined :: MyList (String, Int, Double))
