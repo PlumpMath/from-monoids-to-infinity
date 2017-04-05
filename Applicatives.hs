@@ -9,8 +9,8 @@ data MyList a = Nil | Cons a (MyList a) deriving (Eq, Show)
 
 instance Monoid (MyList a) where
     mempty = Nil
-    mappend Nil (Cons x y) = Cons x y
-    mappend (Cons x y) Nil = Cons x y
+    mappend Nil l = l
+    mappend l Nil = l
     mappend (Cons x y) (Cons x' y') = Cons x (y `mappend` Cons x' y')
 
 instance Functor MyList where
@@ -29,11 +29,11 @@ instance (Arbitrary a) => Arbitrary (MyList a) where
 instance (Eq a) => EqProp (MyList a) where (=-=) = eq
 
 append :: MyList a -> MyList a -> MyList a
-append Nil ys = ys
+append Nil ys         = ys
 append (Cons x xs) ys = Cons x $ xs `append` ys
 
 fold :: (a -> b -> b) -> b -> MyList a -> b
-fold _ b Nil = b
+fold _ b  Nil       = b
 fold f b (Cons h t) = f h (fold f b t)
 
 concat' :: MyList (MyList a) -> MyList a
@@ -42,7 +42,36 @@ concat' = fold append Nil
 flatMap :: (a -> MyList b) -> MyList a -> MyList b
 flatMap f as = concat' $ fmap f as
 
+take' :: Int -> MyList a -> MyList a
+take' 0 _           = Nil
+take' _ Nil         = Nil
+take' n (Cons v vs) = Cons v $ take' (n-1) vs
+
+newtype MyZipList a = MyZipList (MyList a) deriving (Eq, Show)
+
+instance Eq a => EqProp (MyZipList a) where
+    xs =-= ys = xs' `eq` ys'
+        where xs' = let (MyZipList l) = xs
+                    in take' 3000 l
+              ys' = let (MyZipList l) = ys
+                    in take' 3000 l
+
+instance Functor MyZipList where
+    fmap f (MyZipList xs) = MyZipList $ fmap f xs
+
+instance Applicative MyZipList where
+    pure x = MyZipList $ Cons x Nil
+    (<*>) (MyZipList (Cons f fs)) (MyZipList (Cons x xs)) = do
+        let MyZipList p = MyZipList fs <*> MyZipList xs
+        MyZipList $ Cons (f x) Nil `mappend` p
+    (<*>) (MyZipList _) (MyZipList _) = MyZipList Nil
+
+
+-- instance (Arbitrary a, MyList a) => Arbitrary (MyZipList a) where
+    --  arbitrary = MyZipList (Cons <$> arbitrary <*> oneof [arbitrary, return Nil])
+
 main :: IO ()
 main = do
     quickBatch $ monoid $ (undefined :: MyList Int)
     quickBatch $ applicative $ (undefined :: MyList (String, Int, Double))
+    -- quickBatch $ applicative $ (undefined :: MyZipList (String, Int, Double))
