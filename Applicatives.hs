@@ -1,5 +1,6 @@
 module Applicatives where
 
+import Control.Applicative
 import Data.Monoid
 import Test.QuickCheck
 import Test.QuickCheck.Checkers
@@ -47,6 +48,13 @@ take' 0 _           = Nil
 take' _ Nil         = Nil
 take' n (Cons v vs) = Cons v $ take' (n-1) vs
 
+repeat' :: a -> MyList a
+repeat' x = Cons x $ repeat' x
+
+zipWith' :: (a-> b -> c) -> MyList a -> MyList b -> MyList c
+zipWith' f (Cons x x') (Cons y y') = Cons (f x y) $ zipWith' f x' y'
+zipWith' _ _      _      = Nil
+
 newtype MyZipList a = MyZipList (MyList a) deriving (Eq, Show)
 
 instance Eq a => EqProp (MyZipList a) where
@@ -60,18 +68,14 @@ instance Functor MyZipList where
     fmap f (MyZipList xs) = MyZipList $ fmap f xs
 
 instance Applicative MyZipList where
-    pure x = MyZipList $ Cons x Nil
-    (<*>) (MyZipList (Cons f fs)) (MyZipList (Cons x xs)) = do
-        let MyZipList p = MyZipList fs <*> MyZipList xs
-        MyZipList $ Cons (f x) Nil `mappend` p
-    (<*>) (MyZipList _) (MyZipList _) = MyZipList Nil
-
-
--- instance (Arbitrary a, MyList a) => Arbitrary (MyZipList a) where
-    --  arbitrary = MyZipList (Cons <$> arbitrary <*> oneof [arbitrary, return Nil])
+    pure x = MyZipList $ repeat' x
+    (<*>) (MyZipList fs) (MyZipList xs) = MyZipList $ zipWith' ($) fs xs
+    
+instance (Arbitrary a) => Arbitrary (MyZipList a) where
+    arbitrary = MyZipList <$> arbitrary
 
 main :: IO ()
 main = do
     quickBatch $ monoid $ (undefined :: MyList Int)
     quickBatch $ applicative $ (undefined :: MyList (String, Int, Double))
-    -- quickBatch $ applicative $ (undefined :: MyZipList (String, Int, Double))
+    quickBatch $ applicative $ (undefined :: MyZipList (String, Int, Double))
