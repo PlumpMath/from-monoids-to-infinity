@@ -1,4 +1,4 @@
-# applicatives
+# From Monoids to Monads
 Custom made Haskell types with monoid, functor, applicatives and/or monad instances.
 
 ## Recap - Laws
