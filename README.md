@@ -3,7 +3,7 @@ Custom made Haskell types with monoid, functor, applicatives and/or monad instan
 
 ## Recap - Laws
 
-### Monoids
+### Monoids (mappend, mempty)
 
 1. Left identity
 
@@ -17,7 +17,7 @@ Custom made Haskell types with monoid, functor, applicatives and/or monad instan
 
 `mappend x (mappend y z) = (mappend x y) mappend z`
 
-### Functors
+### Functors (fmap)
 
 1. Identity
 
@@ -27,7 +27,7 @@ Custom made Haskell types with monoid, functor, applicatives and/or monad instan
 
 `fmap (f . g) == fmap f . fmap g`
 
-### Applicatives
+### Applicatives (pure, <*>)
 
 1. Identity
 
@@ -45,7 +45,7 @@ Custom made Haskell types with monoid, functor, applicatives and/or monad instan
 
 `u <*> pure y = pure ($ y) <*> u`
 
-### Monads
+### Monads (>>=, return)
 
 1. Left identity
 
