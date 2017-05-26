@@ -133,7 +133,21 @@ newtype MyIdentity a = MyIdentity a deriving (Eq, Ord, Show)
 
 instance Functor MyIdentity where
     fmap f (MyIdentity x) = MyIdentity $ f x
- 
+
+instance Foldable MyIdentity where
+    foldMap f (MyIdentity x) = f x
+
+instance Traversable (MyIdentity) where
+    traverse f (MyIdentity x) = MyIdentity <$> (f x)
+
+instance (EqProp a) => EqProp (MyIdentity a) where
+    (=-=)  _     _  = property True
+
+instance (Arbitrary a) => Arbitrary (MyIdentity a) where
+    arbitrary = do
+        x <- arbitrary
+        elements [MyIdentity x]
+
 --------------------------------- Kleisli composition -------------------------------------
 ----------------- (>=>) :: Monad m => (a -> m b) -> (b -> m c) -> a -> m c ----------------
 -------------------------------------------------------------------------------------------
@@ -204,6 +218,8 @@ main = do
     quickBatch $ monad $ (undefined :: Nope (String, Int, Double))
     putStrLn "\nTesting MyEither..."
     quickBatch $ traversable $ (undefined :: MyEither String (Double, Double, [Double]))
-    putStrLn "\nTesting Kleisli composition"
-    askForAge
-    putStrLn "\nFinished testing Kleisli composition"
+    putStrLn "\nTesting MyIdentity..."
+    quickBatch $ traversable $ (undefined :: MyIdentity (Double, Double, [Double]))
+    --putStrLn "\nTesting Kleisli composition"
+    --askForAge
+    --putStrLn "\nFinished testing Kleisli composition"
