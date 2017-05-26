@@ -151,6 +151,44 @@ getAge = sayHi >=> readM
 askForAge :: IO Int
 askForAge = getAge "Hello! How old are you? "
 
+--------------------------------- MyEither -------------------------------------
+data MyEither a b = MyLeft a | MyRight b deriving (Eq, Show, Ord)
+
+instance Functor (MyEither a) where
+    fmap _ (MyLeft a)  = MyLeft a
+    fmap f (MyRight a) = MyRight $ f a
+
+instance Applicative (MyEither e) where
+    pure              = MyRight
+    (MyLeft e) <*>  _ = MyLeft e
+    (MyRight e) <*> r = fmap e r
+
+instance Foldable (MyEither a) where
+    foldMap _ (MyLeft _)  = mempty
+    foldMap f (MyRight r) = f r
+
+    foldr _ z (MyLeft _)  = z
+    foldr f z (MyRight r) = f r z
+
+    foldl _ z (MyLeft _)  = z
+    foldl f z (MyRight r) = f z r
+
+instance Traversable (MyEither e) where
+    traverse _ (MyLeft x) = pure (MyLeft x)
+    traverse f (MyRight r) = MyRight <$> f r 
+
+instance (EqProp a, EqProp b) => EqProp (MyEither a b) where
+    (=-=) (MyLeft x)  (MyLeft y)  = x =-= y
+    (=-=) (MyRight x) (MyRight y) = x =-= y
+    (=-=)      _            _       = property False
+
+instance (Arbitrary a, Arbitrary b) => Arbitrary (MyEither a b) where
+    arbitrary = do
+        a <- arbitrary
+        b <- arbitrary
+        elements [MyLeft a, MyRight b]
+
+
 main :: IO ()
 main = do
     putStrLn "Testing MyList..."
@@ -164,8 +202,8 @@ main = do
     putStrLn "\n\nTesting Nope..."
     quickBatch $ applicative $ (undefined :: Nope (Int, Double, String))
     quickBatch $ monad $ (undefined :: Nope (String, Int, Double))
---    putStrLn "\n\nTesting MyIdentity"
---    quickBatch $ functor $ (undefined :: MyIdentity (String, Int, Double))
-    --putStrLn "Kleisli composition"
-    --askForAge
-    --putStrLn "Kleisli composition"
+    putStrLn "\nTesting MyEither..."
+    quickBatch $ traversable $ (undefined :: MyEither String (Double, Double, [Double]))
+    putStrLn "\nTesting Kleisli composition"
+    askForAge
+    putStrLn "\nFinished testing Kleisli composition"
