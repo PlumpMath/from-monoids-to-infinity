@@ -1,5 +1,5 @@
-# From Monoids to Monads
-Custom made Haskell types with monoid, functor, applicatives and/or monad instances.
+# From Monoids to Infinity
+Custom made Haskell types with monoid, functor, applicatives, monads, foldables, traversables and beyond
 
 ## Recap - Laws
 
