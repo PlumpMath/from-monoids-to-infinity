@@ -166,6 +166,7 @@ askForAge :: IO Int
 askForAge = getAge "Hello! How old are you? "
 
 --------------------------------- MyEither -------------------------------------
+--------------------------------------------------------------------------------
 data MyEither a b = MyLeft a | MyRight b deriving (Eq, Show, Ord)
 
 instance Functor (MyEither a) where
@@ -203,6 +204,27 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (MyEither a b) where
         elements [MyLeft a, MyRight b]
 
 
+------------------------------ MyConstant ---------------------------------
+---------------------------------------------------------------------------
+newtype MyConstant a b = MyConstant { getConstant :: a } deriving (Eq, Ord, Show)
+
+instance Functor (MyConstant a) where
+    fmap _ (MyConstant x) = MyConstant x
+
+instance Foldable (MyConstant a) where
+    foldMap f (MyConstant x) = mempty f
+
+instance Traversable (MyConstant a) where
+    traverse _ (MyConstant x) = pure (MyConstant x)
+
+instance (EqProp a, EqProp b) => EqProp (MyConstant a b) where
+     (=-=) (MyConstant x)  (MyConstant y)  = x =-= y
+
+instance (Arbitrary a, Arbitrary b) => Arbitrary (MyConstant a b) where
+      arbitrary = do
+          x <- arbitrary
+          elements [(MyConstant x)]
+
 main :: IO ()
 main = do
     putStrLn "Testing MyList..."
@@ -220,6 +242,8 @@ main = do
     quickBatch $ traversable $ (undefined :: MyEither String (Double, Double, [Double]))
     putStrLn "\nTesting MyIdentity..."
     quickBatch $ traversable $ (undefined :: MyIdentity (Double, Double, [Double]))
+    putStrLn "\nTesting MyConstant..."
+    quickBatch $ traversable $ (undefined :: MyConstant Double (Double, Double, [Double]))
     --putStrLn "\nTesting Kleisli composition"
     --askForAge
     --putStrLn "\nFinished testing Kleisli composition"
