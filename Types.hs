@@ -26,6 +26,14 @@ instance Applicative MyList where
     (<*>) (Cons f g) (Cons x y) = Cons (f x) (Cons f Nil <*> y) `mappend` (g <*> Cons x y)
     (<*>)     _       _         = Nil
 
+instance Foldable MyList where
+    foldMap _ Nil = mempty
+    foldMap f (Cons x y) = f x `mappend` foldMap f y
+
+instance Traversable MyList where
+    traverse _ Nil = pure Nil
+    traverse f (Cons x y) = Cons <$> f x <*> (traverse f y) 
+
 instance (Arbitrary a) => Arbitrary (MyList a) where
      arbitrary = (Cons <$> arbitrary <*> oneof [arbitrary, return Nil])
 
@@ -203,9 +211,8 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (MyEither a b) where
         b <- arbitrary
         elements [MyLeft a, MyRight b]
 
-
------------------------------- MyConstant ---------------------------------
----------------------------------------------------------------------------
+---------------------------------- MyConstant -----------------------------------
+---------------------------------------------------------------------------------
 newtype MyConstant a b = MyConstant { getConstant :: a } deriving (Eq, Ord, Show)
 
 instance Functor (MyConstant a) where
@@ -225,11 +232,37 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (MyConstant a b) where
           x <- arbitrary
           elements [(MyConstant x)]
 
+---------------------------------- MyMaybe --------------------------------
+---------------------------------------------------------------------------
+data MyMaybe a = Zero | One a deriving (Eq, Ord, Show)
+
+instance Functor MyMaybe where
+    fmap _ Zero = Zero
+    fmap f (One x) = One $ f x
+
+instance Foldable MyMaybe where
+    foldMap _ Zero    = mempty
+    foldMap f (One x) = f x
+
+instance Traversable MyMaybe where
+    traverse _ Zero    = pure Zero
+    traverse f (One x) = One <$> f x
+
+instance (EqProp a) => EqProp (MyMaybe a) where
+    (=-=)  Zero     Zero     = property True
+    (=-=)  (One x)  (One y)  = x =-= y
+
+instance (Arbitrary a) => Arbitrary (MyMaybe a) where
+    arbitrary = do
+        x <- arbitrary
+        elements [One x]
+
 main :: IO ()
 main = do
     putStrLn "Testing MyList..."
     quickBatch $ monoid      $ (undefined :: MyList (String, Int, Double))
     quickBatch $ applicative $ (undefined :: MyList (String, Int, Double))
+    quickBatch $ traversable $ (undefined :: MyList (String, Int, String))
     putStrLn "\n\nTesting MyZipList..."
     quickBatch $ applicative $ (undefined :: MyZipList (String, Int, Double))
     putStrLn "\n\nTesting MySum..."
@@ -238,12 +271,14 @@ main = do
     putStrLn "\n\nTesting Nope..."
     quickBatch $ applicative $ (undefined :: Nope (Int, Double, String))
     quickBatch $ monad $ (undefined :: Nope (String, Int, Double))
-    putStrLn "\nTesting MyEither..."
+    putStrLn "\n\nTesting MyEither..."
     quickBatch $ traversable $ (undefined :: MyEither String (Double, Double, [Double]))
-    putStrLn "\nTesting MyIdentity..."
+    putStrLn "\n\nTesting MyIdentity..."
     quickBatch $ traversable $ (undefined :: MyIdentity (Double, Double, [Double]))
-    putStrLn "\nTesting MyConstant..."
+    putStrLn "\n\nTesting MyConstant..."
     quickBatch $ traversable $ (undefined :: MyConstant Double (Double, Double, [Double]))
+    putStrLn "\n\nTesting MyMaybe..."
+    quickBatch $ traversable $ (undefined :: MyMaybe (Double, Double, [Double]))
     --putStrLn "\nTesting Kleisli composition"
     --askForAge
     --putStrLn "\nFinished testing Kleisli composition"
