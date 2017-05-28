@@ -257,6 +257,31 @@ instance (Arbitrary a) => Arbitrary (MyMaybe a) where
         x <- arbitrary
         elements [One x]
 
+----------------------------------- MyTree --------------------------------
+---------------------------------------------------------------------------
+data MyTree a = Empty | Leaf a | Node (MyTree a) a (MyTree a) deriving (Eq, Show)
+
+instance Functor MyTree where
+    fmap _ Empty    = Empty
+    fmap f (Leaf x) = Leaf (f x)
+    fmap f (Node l v r) = Node (f <$> l) (f v) (f <$> r)
+
+instance Foldable MyTree where
+    foldMap _ Empty        = mempty
+    foldMap f (Leaf x)     = f x
+    foldMap f (Node l v r) = foldMap f l `mappend` f v `mappend` foldMap f r
+
+instance Traversable MyTree where
+    traverse _ Empty        = pure Empty
+    traverse f (Leaf x)     = Leaf <$> f x
+    traverse f (Node l v r) = Node <$> traverse f l <*> f v <*> traverse f r
+
+instance (Arbitrary a) => Arbitrary (MyTree a) where
+     arbitrary = (Node <$> oneof [arbitrary, Leaf <$> arbitrary, return Empty] 
+                       <*> arbitrary <*> oneof [arbitrary, Leaf <$> arbitrary ,return Empty])
+
+instance (Eq a) => EqProp (MyTree a) where (=-=) = eq
+
 main :: IO ()
 main = do
     putStrLn "Testing MyList..."
@@ -279,6 +304,8 @@ main = do
     quickBatch $ traversable $ (undefined :: MyConstant Double (Double, Double, [Double]))
     putStrLn "\n\nTesting MyMaybe..."
     quickBatch $ traversable $ (undefined :: MyMaybe (Double, Double, [Double]))
+    putStrLn "\n\nTesting MyTree"
+    quickBatch $ traversable $ (undefined :: MyTree (String, Int, String))
     --putStrLn "\nTesting Kleisli composition"
     --askForAge
     --putStrLn "\nFinished testing Kleisli composition"
